@@ -6,78 +6,94 @@ var mongoose = require ("mongoose");
 
 var userModel = require('../models/users');
 
+
+// Vérification format email
 function validateEmail(email) {
   const re =
     /^(([^<>()[]\.,;:\s@"]+(.[^<>()[]\.,;:\s@"]+)*)|(".+"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;
   return re.test(email);
 }
 
-/* GET users listing. */
-router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
+
+
+// enregistrement des données utilisateur
+router.post('/sign-up', async function(req, res, next) {
+
+	let error = [];
+  let result = false;
+  let saveUser = null;
+  let token = null;
+
+  const userExists = await userModel.findOne({ email: req.body.email })
+    if(userExists) {
+      error.push('Email déjà utilisé');
+		};
+
+		if(req.body.name == ''
+  	|| req.body.email == ''
+  	|| req.body.password == ''
+  	){
+   		error.push('Veuillez remplir tous les champs');
+  	};
+
+		if(error.length == 0) {
+			const cost = 10;
+			const hash = bcrypt.hashSync(req.body.password, cost);
+  		let newUser = new userModel({
+				name: req.body.name,
+				email: req.body.email,
+				password: hash,
+				token: uid2(32)
+  		});
+
+ 			saveUser = await newUser.save();
+			if(saveUser){
+				result = true
+				token = saveUser.token
+    	}
+
+  res.json({result, saveUser, error, token})
+}});
+
+
+// Reconnexion
+router.post('/sign-in', async function(req, res, next) {
+
+	let error = [];
+  let result = false;
+  let token = null;
+
+	if(req.body.email == ''
+	|| req.body.password == ''
+	){
+		error.push('Veuillez remplir les champs requis');
+	};
+
+	if(error.length == 0){
+		const userSaved = await userModel.findOne({ email: req.body.email })
+		console.log('[BACK] USER FOUND : ' + userSaved);
+
+		if(userSaved) {
+			if(bcrypt.compareSync(req.body.password, userSaved.password)) {
+				token = userSaved.token
+				console.log('[BACK] USER TOKEN : ' + userSaved.token);
+			};
+		}} else {
+			error.push('Email incorrect');
+		}
+
+	res.json({result, error, token});
 });
 
-
-// register
-router.post('/signup', async function(req, res, next) {
-  let error = [];
-  // console.log(req.body);
-
-  if (!validateEmail(req.body.emailFromFront)) {
-    error.push("Format d'email incorrect");
-  }
-
-  // if (error.length == 0) {
-  const cost = 10;
-  const hash = bcrypt.hashSync(req.body.password, cost);
-
-  var alreadyExist = await userModel.findOne({ email: req.body.email })
-    if(alreadyExist){
-      res.json({result:false, error})
-    } else {
-      var newUser = new userModel({   
-      name: req.body.name,
-      email: req.body.email,
-      password: hash,
-      token: uid2(32)
-    }) 
-
-    var userSave = await newUser.save()
-  res.json({result:true, token:userSave.token});
-
-}
-
-// } else {
-//   res.json({result:false,n});
-
-// }
-
-});
-
-// router.post('/signin', async function(req, res, next) {
-
-//   var searchUser = await userModel.findOne({
-//     email: req.body.email
-//   }) 
-//   console.log("hi", searchUser);
-//   if(bcrypt.compareSync(req.body.password, searchUser.password)){
-//     res.json({result:true, token:searchUser.token})
-//   } else{
-//     res.json({result:false, Message: "Utilisateur non trouvé" })
-
-//   }
-
-// });
 
 // MAJ des données utilisateur
-
 router.put('/profile', async function(req, res, next) {
   console.log(" profile update", req.body.music);
   // console.log("interest", req.body.interest);
 
   const musicFromFront = JSON.parse(req.body.music)
   const interestFromFront = JSON.parse(req.body.interest)
-  console.log("name: ", req.body.name);
+  // console.log("name: ", req.body.name);
   var userExist = await userModel.updateOne(
     { token: req.body.token },
     {name: req.body.name,
