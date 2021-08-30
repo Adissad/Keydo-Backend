@@ -2,27 +2,19 @@ var express = require('express');
 var router = express.Router();
 var bcrypt = require('bcrypt');
 var uid2 = require ("uid2");
-var mongoose = require ("mongoose");
+var mongoose = require ("mongoose"); 
 
 var userModel = require('../models/users');
-
-
-// Vérification format email
-function validateEmail(email) {
-  const re =
-    /^(([^<>()[]\.,;:\s@"]+(.[^<>()[]\.,;:\s@"]+)*)|(".+"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;
-  return re.test(email);
-}
 
 
 
 // enregistrement des données utilisateur
 router.post('/sign-up', async function(req, res, next) {
 
-	let error = [];
-  let result = false;
-  let saveUser = null;
-  let token = null;
+  var error = [];
+  var result = false;
+  var saveUser = null;
+  var token = null;
 
   const userExists = await userModel.findOne({ email: req.body.email })
     if(userExists) {
@@ -39,7 +31,7 @@ router.post('/sign-up', async function(req, res, next) {
 		if(error.length == 0) {
 			const cost = 10;
 			const hash = bcrypt.hashSync(req.body.password, cost);
-  		let newUser = new userModel({
+  		var newUser = new userModel({
 				name: req.body.name,
 				email: req.body.email,
 				password: hash,
@@ -59,9 +51,9 @@ router.post('/sign-up', async function(req, res, next) {
 // Reconnexion
 router.post('/sign-in', async function(req, res, next) {
 
-	let error = [];
-  let result = false;
-  let token = null;
+  var error = [];
+  var result = false;
+  var token = null;
 
 	if(req.body.email == ''
 	|| req.body.password == ''
@@ -71,12 +63,12 @@ router.post('/sign-in', async function(req, res, next) {
 
 	if(error.length == 0){
 		const userSaved = await userModel.findOne({ email: req.body.email })
-		console.log('[BACK] USER FOUND : ' + userSaved);
+		// console.log('USER FOUND : ' + userSaved);
 
 		if(userSaved) {
 			if(bcrypt.compareSync(req.body.password, userSaved.password)) {
 				token = userSaved.token
-				console.log('[BACK] USER TOKEN : ' + userSaved.token);
+				// console.log('USER TOKEN : ' + userSaved.token);
 			};
 		}} else {
 			error.push('Email incorrect');
